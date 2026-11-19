@@ -23,7 +23,7 @@
  */
 // Демо-копия на GitHub Pages живёт по адресу /m-detail/: все пути считаются от области service worker.
 const BASE = new URL(self.registration.scope).pathname.replace(/\/$/, "");
-const VERSION = "gh-v1";
+const VERSION = "gh-v2";
 const STATIC = `md-static-${VERSION}`;
 const PAGES = `md-pages-${VERSION}`;
 const OFFLINE_URL = `${BASE}/offline.html`;
@@ -128,38 +128,4 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith(`${BASE}/`) && /\.(?:js|css|woff2?|png|webp|svg|glb)$/.test(url.pathname)) {
     event.respondWith(staleWhileRevalidate(request));
   }
-});
-
-// ---------- Уведомления ----------
-
-self.addEventListener("push", (event) => {
-  let data = {};
-  try {
-    data = event.data ? event.data.json() : {};
-  } catch {
-    data = { body: event.data ? event.data.text() : "" };
-  }
-  const url = typeof data.url === "string" && data.url.startsWith("/") ? data.url : `${BASE}/garage/`;
-  // Уведомление показывается всегда: браузеры требуют этого для каждого push.
-  event.waitUntil(
-    self.registration.showNotification(data.title || "M Detail", {
-      body: data.body || "Обновление по вашей заявке",
-      icon: `${BASE}/icons/icon-192.png`,
-      badge: `${BASE}/icons/icon-192.png`,
-      tag: data.tag || "m-detail",
-      data: { url },
-    }),
-  );
-});
-
-self.addEventListener("notificationclick", (event) => {
-  event.notification.close();
-  const url = new URL((event.notification.data && event.notification.data.url) || `${BASE}/garage/`, self.location.origin);
-  event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
-      const open = list.find((c) => new URL(c.url).origin === url.origin);
-      if (open) return open.focus().then((c) => (c && "navigate" in c ? c.navigate(url.href) : c));
-      return self.clients.openWindow(url.href);
-    }),
-  );
 });
